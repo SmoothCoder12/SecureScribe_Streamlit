@@ -1,0 +1,26 @@
+{
+  "name": "my-electron-app",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^23.0.0",
+    "electron-builder": "^23.0.0"
+  },
+  "build": {
+    "appId": "com.example.myapp",
+    "productName": "My Electron App",
+    "win": {
+      "icon": "assets/icon.ico" 
+    },
+    "mac": {
+      "icon": "assets/icon.png" 
+    },
+    "linux": {
+      "icon": "assets/icon.png" 
+    }
+  }
+}
