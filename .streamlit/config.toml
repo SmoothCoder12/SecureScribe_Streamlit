@@ -3,3 +3,9 @@ toolbarMode = "minimal"
 
 [server]
 headless = true
+
+[theme]
+base="dark"
+primaryColor="#B20C0C"
+backgroundColor="#131315"
+secondaryBackgroundColor="#18181b"
