@@ -78,7 +78,7 @@ def decrypt_file(encrypted_data, password):
     except Exception as e:
         raise ValueError("Decryption failed: incorrect password or data integrity compromised.")
 
-# Function to parse activity log file and return a DataFrame
+# Parse activity log file and return a DataFrame
 def parse_activity_log():
     data = {"Date": [], "Type": [], "File Name": [], "Size (bytes)": []}
     if os.path.exists("activity_log.txt"):
@@ -90,8 +90,11 @@ def parse_activity_log():
                     data["Date"].append(parts[0])
                     data["Type"].append(parts[1])
                     data["File Name"].append(parts[2])
-                    data["Size (bytes)"].append(parts[3].split(" ")[0])
-    return pd.DataFrame(data)
+                    data["Size (bytes)"].append(int(parts[3].split(" ")[0]))  # Ensure size is stored as integer
+    # Convert to DataFrame and convert Date to datetime object
+    df = pd.DataFrame(data)
+    df["Date"] = pd.to_datetime(df["Date"], errors='coerce')
+    return df
 
 # Log activity function with time and filtering options
 def log_activity(activity):
@@ -162,7 +165,7 @@ with st.sidebar:
     """
     <style>
     [data-testid="stSidebar"] {
-        background-color: #272930; /* Adjust background color with transparency */
+        background-color: #18181B; /* Adjust background color with transparency */
         
 
     }
@@ -173,13 +176,13 @@ with st.sidebar:
   
     selected = option_menu(
        "",
-        ["FileSecure", "NoteSafe","Bulk Encryption", "Analytics","Settings"],
-        icons=["lock", "file-earmark-text","folder", "bar-chart","gear"],
+        ["FileSecure", "Analytics"],
+        icons=["lock","bar-chart"],
         menu_icon="none",
         default_index=0,
         styles={
             "container":{
-                "background-color":"#272930"
+                "background-color":"#18181B"
             },
         # Sidebar background color
           "icon": {
@@ -223,25 +226,11 @@ def encrypt_folder(folder_path, output_folder_path, password):
                     encrypted_file.write(encrypted_data)
 
                 print(f"Encrypted file - {new_file_name}")
-# Function to schedule encryption based on user input (daily, weekly, monthly)
 
-def schedule_encryption(folder_path, output_folder_path, password, schedule_type):
-    if schedule_type == "Daily":
-        schedule.every().day.at("00:00").do(encrypt_folder, folder_path, output_folder_path, password)
-    elif schedule_type == "Weekly":
-        schedule.every().week.at("00:00").do(encrypt_folder, folder_path, output_folder_path, password)
-    elif schedule_type == "Monthly":
-        # Schedule to run daily and check if it's the first day of the month
-        schedule.every().day.at("00:00").do(lambda: check_monthly(folder_path, output_folder_path, password))
 
-    while True:
-        schedule.run_pending()
-        time.sleep(60)
 
-def check_monthly(folder_path, output_folder_path, password):
-    # Check if today is the desired day of the month (e.g., the 1st)
-    if datetime.now().day == 1:  # Change '1' to any specific day you want
-        encrypt_folder(folder_path, output_folder_path, password)
+
+
 
 import streamlit as st
 from cryptography.fernet import Fernet
@@ -253,8 +242,8 @@ from appwrite.services.databases import Databases
 # Initialize Appwrite client
 client = Client()
 client.set_endpoint('https://cloud.appwrite.io/v1')  # Your Appwrite Endpoint
-client.set_project('66fbc4e20032495faeb6')  # Your project ID
-client.set_key('standard_1cc8d18bc7758ffa27825ac1825101b42d25465e4e9ba2aa40fb64222ad2415353845adf91d9663fe3310662e96f7dc123056d16562fa8e53597965897481ac3133daf78ea1029421a42f166cab44ff3e2cdb9ee60f8666fde074e612dd233f4d49a330d9f56f2fe422071d7e0d03cdccea7088a472a859b30672d76e942a829')  # Your API key
+client.set_project('6734c7d1003bd8f4748d')  # Your project ID
+client.set_key('standard_95a3394882a21c61996988b665dc873f57c7582b6dcf807c6a7b433335a18cd83f65d6347b7594e70c1766425fc17dd58bf4cd1716ee85eac8c43563da5b261cb55845499f9738f060c32fdf7e5ae5b81462169b9e2329e9d3985ca061b69e288ce7fbb30d78addc0813f9ed319d6824561383c54d9674652dc91edb5389c35d')  # Your API key
 databases = Databases(client)
 
 # Helper functions
@@ -278,8 +267,8 @@ def decrypt_file(encrypted_data, password):
 def store_encrypted_file_in_db(file_name, encrypted_data, password):
     """Store encrypted file in Appwrite database."""
     databases.create_document(
-        database_id='66fbddf800147dc2f3cb',
-        collection_id='66fbde0e0025c5e4f3b7',
+        database_id='6734c8120021b85413f0',
+        collection_id='6734c85900181a41edf0',
         document_id='unique()',
         data={
             "original_filename": file_name,
@@ -291,15 +280,15 @@ def store_encrypted_file_in_db(file_name, encrypted_data, password):
 def fetch_encrypted_files():
     """Fetch all encrypted files from the database."""
     return databases.list_documents(
-        database_id='66fbddf800147dc2f3cb',
-        collection_id='66fbde0e0025c5e4f3b7',
+        database_id='6734c8120021b85413f0',
+        collection_id='6734c85900181a41edf0',
     )['documents']
 
 def fetch_encrypted_file_data(file_name):
     """Fetch the encrypted file data from the database based on file name."""
     result = databases.list_documents(
-        database_id='66fbddf800147dc2f3cb',
-        collection_id='66fbde0e0025c5e4f3b7',
+        database_id='6734c8120021b85413f0',
+        collection_id='6734c85900181a41edf0',
     )
     
     # Find the document with the matching filename
@@ -339,8 +328,8 @@ def delete_file_from_db(file_name, password):
     
     if document and document['password'] == password:
         databases.delete_document(
-            database_id='66fbddf800147dc2f3cb',
-            collection_id='66fbde0e0025c5e4f3b7',
+            database_id='6734c8120021b85413f0',
+            collection_id='6734c85900181a41edf0',
             document_id=document['$id']
         )
         return True
@@ -509,68 +498,6 @@ if selected == "FileSecure":
                 if st.button("🗑️", key=f"delete_{idx}"):  # Button to trigger deletion with a unique key
                     showDeleteDialog(file=original_filename)
 
-# Notes Menu Tabs
-elif selected == "NoteSafe":
-    st.title("NoteSafe📒")
-    tab_selection = st.tabs(["Create Note", "Decrypt Note"])
-
-    # Create Note Tab
-    with tab_selection[0]:
-        st.subheader("Encrypt a Note🔒")
-        note_title = st.text_input("Note Title",placeholder="Enter you note title...")
-        note_content = st.text_area("Note Content",placeholder="Write content here...")
-        password_placeholder = st.empty()
-
-        if note_title and note_content:
-            password = password_placeholder.text_input("Enter Password to Protect Note", type="password")
-            if st.button("Save Note"):
-                validation_error = validate_password(password)
-                if validation_error:
-                    st.error(validation_error)
-                else:
-                    key = get_key(password)
-                    note_data = f"Title: {note_title}\nContent:\n{note_content}".encode()
-                    encrypted_note_data = encrypt_file(note_data, key)
-                    note_filename = f"notes/{note_title}.enc"
-                    with open(note_filename, "wb") as note_file:
-                        note_file.write(encrypted_note_data)
-                    st.success("Note saved and encrypted successfully!")
-                    log_activity(f"Encrypted file - {note_filename} - {len(note_data)} bytes")
-
-                    st.download_button(
-                        label=f"Download Encrypted Note: {note_title}.enc",
-                        data=encrypted_note_data,
-                        file_name=f"{note_title}.enc",
-                        mime="application/octet-stream"
-                    )
-
-    # Decrypt Note Tab
-    with tab_selection[1]:
-        st.subheader("Decrypt Notes🔓")
-        files = st.file_uploader("Choose encrypted notes to decrypt", type="enc", accept_multiple_files=True, label_visibility="collapsed")
-        password_placeholder = st.empty()
-
-        if files:
-            password = password_placeholder.text_input("Enter Password for Note Decryption", type="password")
-            if st.button("Decrypt Notes"):
-                if not password:
-                    st.error("Please enter a password to decrypt the notes.")
-                else:
-                    key = get_key(password)
-                    progress_bar = st.progress(0)
-                    for idx, file in enumerate(files):
-                        file_data = file.read()
-                        if file.name.endswith('.enc'):
-                            try:
-                                decrypted_data = decrypt_file(file_data, key)
-                                st.success(f"Note {file.name} decrypted successfully!")
-                                st.text_area("Decrypted Note Content", decrypted_data.decode())
-                                log_activity(f"Decrypted file - {file.name} - {len(decrypted_data)} bytes")
-
-                            except Exception as e:
-                                st.error(f"Failed to decrypt the note {file.name}. Error: {e}")
-                        progress_bar.progress((idx + 1) / len(files))
-                    progress_bar.empty()
 
 # In the Analytics Menu
 elif selected == "Analytics":
@@ -642,173 +569,3 @@ elif selected == "Analytics":
         st.write("No activity log available.")
 
 
-# Settings Menu
-elif selected == "Settings":
-    st.title("Settings")
-
-    # Settings Tabs
-    tab_general, tab_encryption, tab_key_mgmt, tab_password, tab_about = st.tabs(["General", "Encryption", "Key Management", "Password","About"])
-
-    # General Tab
-    with tab_general:
-        st.subheader("General Settings")
-        # Option for enabling/disabling dark mode
-        dark_mode = st.checkbox("Enable Dark Mode", value=False)
-        if dark_mode:
-            st.write("Dark mode enabled.")
-        else:
-            st.write("Dark mode disabled.")
-        
-        # Option for enabling notifications
-        notifications = st.checkbox("Enable Notifications", value=True)
-        if notifications:
-            st.write("Notifications enabled.")
-        else:
-            st.write("Notifications disabled.")
-
-    # Encryption Settings Tab
-    with tab_encryption:
-        st.subheader("Encryption Settings")
-
-        # Option to select encryption algorithm
-        encryption_algorithm = st.selectbox(
-            "Select Encryption Algorithm",
-            options=["Fernet (AES-128)", "AES-256", "ChaCha20"],
-            index=0
-        )
-        st.write(f"Selected encryption algorithm: {encryption_algorithm}")
-
-        # Option for file extension customization
-        file_extension = st.text_input("Encrypted File Extension", value=".enc")
-        st.write(f"Using file extension: {file_extension}")
-
-        # Option for compression before encryption
-        compress_before_encrypt = st.checkbox("Compress files before encryption", value=False)
-        if compress_before_encrypt:
-            st.write("Compression enabled before encryption.")
-        else:
-            st.write("Compression disabled.")
-
-    # Key Management Tab
-    with tab_key_mgmt:
-        st.subheader("Key Management")
-
-        # Option to change key file location
-        st.write("Current Key Location: ./fernet_key.key")
-        key_location = st.text_input("Change Key File Location", value="./fernet_key.key")
-        if st.button("Update Key Location"):
-            st.success(f"Key file location updated to: {key_location}")
-
-        # Option for automatic key rotation
-        auto_key_rotation = st.checkbox("Enable Automatic Key Rotation", value=False)
-        if auto_key_rotation:
-            rotation_interval = st.slider("Key Rotation Interval (in days)", 30, 365, 90)
-            st.write(f"Automatic key rotation every {rotation_interval} days.")
-
-        # Option for manual key regeneration
-        if st.button("Generate New Encryption Key"):
-            new_key = generate_key()
-            st.success("New encryption key generated successfully.")
-            with open(key_location, "wb") as file:
-                file.write(new_key)
-
-    # Password Settings Tab
-    with tab_password:
-        st.subheader("Password Settings")
-
-        # Option to set default password length for generated passwords
-        default_password_length = st.slider("Default Password Length", 8, 32, 12)
-        st.write(f"Default password length: {default_password_length} characters.")
-
-        # Option to include special characters in passwords
-        special_chars = st.checkbox("Include Special Characters in Passwords", value=True)
-        if special_chars:
-            st.write("Special characters will be included in generated passwords.")
-        else:
-            st.write("Special characters will not be included.")
-
-        # Option to set password expiration time
-        password_expiration = st.checkbox("Enable Password Expiration", value=False)
-        if password_expiration:
-            expiration_days = st.slider("Password Expiration Time (in days)", 30, 180, 90)
-            st.write(f"Passwords will expire after {expiration_days} days.")
-
-    with tab_about:
-        st.header("Encrypto")
-        st.subheader("Keep your files safe and locked without any risk")
-        st.write("Version 1.0.0")
-        st.markdown("<p>Built and developed by Pranav</p>",unsafe_allow_html=True)
-        
-
-# In the Schedule Encrypt section of the Streamlit app
-elif selected == "Bulk Encryption":
-    st.title("Bulk Encryption")
-    tab_selection = st.tabs(["Bulk Encrypt", "Bulk Decrypt"])
-
-    # Schedule Encryption Tab
-    with tab_selection[0]:
-        st.subheader("Select Folder for Encryption")
-        folder_path = st.text_input("Enter the folder path you want to encrypt",placeholder="ParentDirectory\ChlidDirectory")
-
-        # Output Directory Selection for Encrypted Files
-        output_folder_path = st.text_input("Enter the output folder path for encrypted files",placeholder="ParentDirectory\ChlidDirectory")
-
-        # Password Input for Encryption
-        password = st.text_input("Enter Encryption Password", type="password",placeholder="Set strong password...")
-
-        if st.button("Encrypt Folder"):
-            if not os.path.exists(folder_path):
-                st.error("The specified folder path does not exist.")
-            elif not os.path.exists(output_folder_path):
-                st.error("The specified output folder path does not exist.")
-            elif not password:
-                st.error("Please provide a password for encryption.")
-            else:
-                # Call your scheduling function here
-                schedule_encryption(folder_path, output_folder_path, password)
-                st.success(f"Encryption scheduled for folder {folder_path} with output to {output_folder_path}.")
-
-    # Bulk Decrypt Tab
-    with tab_selection[1]:
-        st.subheader("Bulk Decrypt Files")
-
-        # Input for folder containing encrypted files
-        decrypt_folder_path = st.text_input("Enter the folder path containing encrypted files for decryption",placeholder="ParentDirectory\ChlidDirectory")
-        
-        # Output Directory Selection for Decrypted Files
-        decrypt_output_folder_path = st.text_input("Enter the output folder path for decrypted files",placeholder="ParentDirectory\ChlidDirectory")
-        
-        # Password Input for Decryption
-        decrypt_password = st.text_input("Enter Decryption Password", type="password",placeholder="Enter your password...")
-        
-        if st.button("Decrypt Folder"):
-            if not os.path.exists(decrypt_folder_path):
-                st.error("The specified folder path does not exist.")
-            elif not os.path.exists(decrypt_output_folder_path):
-                st.error("The specified output folder path does not exist.")
-            elif not decrypt_password:
-                st.error("Please provide a password for decryption.")
-            else:
-                key = get_key(decrypt_password)
-                decrypted_files = []
-                progress_bar = st.progress(0)
-                
-                # Decrypt all files in the specified directory
-                for filename in os.listdir(decrypt_folder_path):
-                    if filename.endswith('.enc'):
-                        file_path = os.path.join(decrypt_folder_path, filename)
-                        with open(file_path, 'rb') as file:
-                            encrypted_data = file.read()
-                            try:
-                                decrypted_data = decrypt_file(encrypted_data, key)
-                                new_file_name = os.path.join(decrypt_output_folder_path, filename[:-4])  # Remove .enc extension
-                                with open(new_file_name, 'wb') as decrypted_file:
-                                    decrypted_file.write(decrypted_data)
-                                decrypted_files.append(new_file_name)
-                                log_activity(f"Decrypted file - {new_file_name} - {len(decrypted_data)} bytes")
-                                st.success(f"Decrypted {filename} successfully!")
-                            except Exception as e:
-                                st.error(f"Failed to decrypt {filename}. Error: {e}")
-
-                progress_bar.progress(1)  # Set progress to complete
-                progress_bar.empty()
